@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/BMC1-BCH-Wallet/static/css/main.f855e6bc.css",
-    "main.js": "/BMC1-BCH-Wallet/static/js/main.5bd1a56e.js",
+    "main.js": "/BMC1-BCH-Wallet/static/js/main.b6ba7ae5.js",
     "static/js/453.be3c4f5c.chunk.js": "/BMC1-BCH-Wallet/static/js/453.be3c4f5c.chunk.js",
     "index.html": "/BMC1-BCH-Wallet/index.html",
     "main.f855e6bc.css.map": "/BMC1-BCH-Wallet/static/css/main.f855e6bc.css.map",
-    "main.5bd1a56e.js.map": "/BMC1-BCH-Wallet/static/js/main.5bd1a56e.js.map",
+    "main.b6ba7ae5.js.map": "/BMC1-BCH-Wallet/static/js/main.b6ba7ae5.js.map",
     "453.be3c4f5c.chunk.js.map": "/BMC1-BCH-Wallet/static/js/453.be3c4f5c.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.f855e6bc.css",
-    "static/js/main.5bd1a56e.js"
+    "static/js/main.b6ba7ae5.js"
   ]
 }
