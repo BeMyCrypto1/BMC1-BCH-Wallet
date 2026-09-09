@@ -45,7 +45,7 @@ function App() {
     }
   };
 
-  // ✅ LOGIN (Password only - daily use)
+  // ✅ LOGIN
   const handleLogin = () => {
     const savedPassword = localStorage.getItem("wallet_password");
     if (loginPassword === savedPassword) {
@@ -104,7 +104,7 @@ function App() {
     }
   };
 
-  // ✅ RESTORE WALLET (24-word seed + 25th word + new password)
+  // ✅ RESTORE WALLET
   const handleRestoreWallet = async () => {
     if (!restoreMnemonic.trim()) {
       setRestoreError("❌ Please enter your 24-word seed phrase");
@@ -130,11 +130,6 @@ function App() {
 
     setIsLoading(true);
     try {
-      // Combine seed + passphrase for restoration
-      const fullMnemonic = restorePassphrase 
-        ? restoreMnemonic.trim() + " " + restorePassphrase.trim()
-        : restoreMnemonic.trim();
-      
       const seed = await bip39.mnemonicToSeed(restoreMnemonic.trim());
       const seedHex = seed.toString('hex');
       const addressHash = seedHex.substring(0, 40);
@@ -166,14 +161,20 @@ function App() {
     }
   };
 
-  // ✅ LOGOUT
+  // ✅ LOGOUT - KEEP `wallet_exists` so Login button appears
   const handleLogout = () => {
-    localStorage.clear();
+    // Clear sensitive data only
+    localStorage.removeItem("wallet_mnemonic");
+    localStorage.removeItem("wallet_address");
+    localStorage.removeItem("wallet_seed");
+    localStorage.removeItem("wallet_password");
+    localStorage.removeItem("wallet_passphrase");
+    // ✅ KEEP `wallet_exists` so the Login button appears
+    
     setIsLoggedIn(false);
     setShowCreateWallet(false);
     setShowRestoreWallet(false);
     setShowLogin(false);
-    setWalletExists(false);
     setLoginPassword("");
     setPassword("");
     setConfirmPassword("");
@@ -182,7 +183,19 @@ function App() {
     setMnemonic("");
     setAddress("");
     setShowSeed(false);
-    window.location.reload();
+    // ✅ Don't reload, just update state
+    setWalletExists(true); // Keep this true so Login button shows
+  };
+
+  // ✅ Handle Send button
+  const handleSend = () => {
+    alert("Send functionality coming soon! This will allow you to send BCH.");
+  };
+
+  // ✅ Handle Receive button
+  const handleReceive = () => {
+    const walletAddress = address || localStorage.getItem("wallet_address") || "";
+    alert(`📋 Your BCH Address:\n\n${walletAddress}\n\nCopy this address to receive BCH.`);
   };
 
   // ✅ SEED DISPLAY SCREEN
@@ -241,8 +254,8 @@ function App() {
               <p style={styles.balanceAmount}>0.00000000 BCH</p>
             </div>
             <div style={styles.actions}>
-              <button style={styles.actionButton}>Send</button>
-              <button style={styles.actionButton}>Receive</button>
+              <button style={styles.actionButton} onClick={handleSend}>Send</button>
+              <button style={styles.actionButton} onClick={handleReceive}>Receive</button>
             </div>
           </div>
         </div>
@@ -250,7 +263,7 @@ function App() {
     );
   }
 
-  // ✅ LOGIN SCREEN (Password only)
+  // ✅ LOGIN SCREEN
   if (showLogin) {
     return (
       <div style={styles.container}>
@@ -376,7 +389,7 @@ function App() {
     );
   }
 
-  // ✅ WELCOME SCREEN - 3 BUTTONS
+  // ✅ WELCOME SCREEN
   return (
     <div style={styles.container}>
       <div style={styles.gradient}>
@@ -389,7 +402,7 @@ function App() {
           {restoreError && <p style={styles.errorText}>{restoreError}</p>}
 
           <div style={styles.buttonGroup}>
-            {/* Button 1: Login */}
+            {/* Button 1: Login - ALWAYS shows if wallet exists */}
             {walletExists && (
               <button onClick={() => setShowLogin(true)} style={styles.button}>
                 🔐 Login (Password Only)
@@ -401,7 +414,7 @@ function App() {
               ➕ Create New Wallet
             </button>
 
-            {/* Button 3: Restore Wallet (Forgot password or new device) */}
+            {/* Button 3: Restore Wallet */}
             <button onClick={() => setShowRestoreWallet(true)} style={styles.secondaryButton}>
               🔄 Restore Wallet (24-Word Seed + 25th Word)
             </button>
