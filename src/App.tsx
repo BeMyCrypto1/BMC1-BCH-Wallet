@@ -6,7 +6,6 @@ import * as CryptoJS from 'crypto-js';
 window.Buffer = Buffer;
 
 function App() {
-  // State
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showCreateWallet, setShowCreateWallet] = useState(false);
   const [showRestoreWallet, setShowRestoreWallet] = useState(false);
@@ -31,7 +30,6 @@ function App() {
     setWalletExists(exists);
   }, []);
 
-  // ✅ ENCRYPT / DECRYPT
   const encryptData = (data: string, password: string): string => {
     return CryptoJS.AES.encrypt(data, password).toString();
   };
@@ -45,7 +43,7 @@ function App() {
     }
   };
 
-  // ✅ LOGIN (Password only - daily use)
+  // ✅ FIXED: Login now decrypts the address
   const handleLogin = () => {
     const savedPassword = localStorage.getItem("wallet_password");
     if (loginPassword === savedPassword) {
@@ -53,18 +51,14 @@ function App() {
       setLoginError("");
       setShowLogin(false);
       
-      // Decrypt the address using the password
       const encryptedAddress = localStorage.getItem("wallet_address") || "";
-      if (encryptedAddress) {
-        const decryptedAddress = decryptData(encryptedAddress, loginPassword);
-        setAddress(decryptedAddress);
-      }
+      const decryptedAddress = decryptData(encryptedAddress, loginPassword);
+      setAddress(decryptedAddress);
     } else {
       setLoginError("❌ Incorrect password. Please try again.");
     }
   };
 
-  // ✅ CREATE NEW WALLET
   const handleCreateWallet = async () => {
     if (password.length < 8) {
       alert("Password must be at least 8 characters");
@@ -108,7 +102,6 @@ function App() {
     }
   };
 
-  // ✅ RESTORE WALLET
   const handleRestoreWallet = async () => {
     if (!restoreMnemonic.trim()) {
       setRestoreError("❌ Please enter your 24-word seed phrase");
@@ -165,14 +158,11 @@ function App() {
     }
   };
 
-  // ✅ LOGOUT - KEEP PASSWORD FOR LOGIN
   const handleLogout = () => {
-    // Clear sensitive seed data but KEEP password for login
     localStorage.removeItem("wallet_mnemonic");
     localStorage.removeItem("wallet_address");
     localStorage.removeItem("wallet_seed");
     localStorage.removeItem("wallet_passphrase");
-    // Keep wallet_password and wallet_exists
     
     setIsLoggedIn(false);
     setShowCreateWallet(false);
@@ -189,12 +179,10 @@ function App() {
     setWalletExists(true);
   };
 
-  // ✅ Handle Send button
   const handleSend = () => {
     alert("Send functionality coming soon! This will allow you to send BCH.");
   };
 
-  // ✅ Handle Receive button
   const handleReceive = () => {
     const walletAddress = address || localStorage.getItem("wallet_address") || "";
     alert(`📋 Your BCH Address:\n\n${walletAddress}\n\nCopy this address to receive BCH.`);
@@ -236,7 +224,7 @@ function App() {
     );
   }
 
-  // ✅ HOME SCREEN (Logged In)
+  // ✅ HOME SCREEN
   if (isLoggedIn) {
     const walletAddress = address || localStorage.getItem("wallet_address") || "";
     return (
