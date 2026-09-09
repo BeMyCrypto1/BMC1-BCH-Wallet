@@ -45,16 +45,20 @@ function App() {
     }
   };
 
-  // ✅ LOGIN
+  // ✅ LOGIN (Password only - daily use)
   const handleLogin = () => {
     const savedPassword = localStorage.getItem("wallet_password");
     if (loginPassword === savedPassword) {
       setIsLoggedIn(true);
       setLoginError("");
       setShowLogin(false);
+      
+      // Decrypt the address using the password
       const encryptedAddress = localStorage.getItem("wallet_address") || "";
-      const decryptedAddress = decryptData(encryptedAddress, loginPassword);
-      setAddress(decryptedAddress);
+      if (encryptedAddress) {
+        const decryptedAddress = decryptData(encryptedAddress, loginPassword);
+        setAddress(decryptedAddress);
+      }
     } else {
       setLoginError("❌ Incorrect password. Please try again.");
     }
@@ -161,15 +165,14 @@ function App() {
     }
   };
 
-  // ✅ LOGOUT - KEEP `wallet_exists` so Login button appears
+  // ✅ LOGOUT - KEEP PASSWORD FOR LOGIN
   const handleLogout = () => {
-    // Clear sensitive data only
+    // Clear sensitive seed data but KEEP password for login
     localStorage.removeItem("wallet_mnemonic");
     localStorage.removeItem("wallet_address");
     localStorage.removeItem("wallet_seed");
-    localStorage.removeItem("wallet_password");
     localStorage.removeItem("wallet_passphrase");
-    // ✅ KEEP `wallet_exists` so the Login button appears
+    // Keep wallet_password and wallet_exists
     
     setIsLoggedIn(false);
     setShowCreateWallet(false);
@@ -183,8 +186,7 @@ function App() {
     setMnemonic("");
     setAddress("");
     setShowSeed(false);
-    // ✅ Don't reload, just update state
-    setWalletExists(true); // Keep this true so Login button shows
+    setWalletExists(true);
   };
 
   // ✅ Handle Send button
@@ -402,19 +404,16 @@ function App() {
           {restoreError && <p style={styles.errorText}>{restoreError}</p>}
 
           <div style={styles.buttonGroup}>
-            {/* Button 1: Login - ALWAYS shows if wallet exists */}
             {walletExists && (
               <button onClick={() => setShowLogin(true)} style={styles.button}>
                 🔐 Login (Password Only)
               </button>
             )}
 
-            {/* Button 2: Create New Wallet */}
             <button onClick={() => setShowCreateWallet(true)} style={walletExists ? styles.secondaryButton : styles.button}>
               ➕ Create New Wallet
             </button>
 
-            {/* Button 3: Restore Wallet */}
             <button onClick={() => setShowRestoreWallet(true)} style={styles.secondaryButton}>
               🔄 Restore Wallet (24-Word Seed + 25th Word)
             </button>
