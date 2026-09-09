@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import "./App.css";
 import * as bip39 from "bip39";
 import { Buffer } from 'buffer';
@@ -10,6 +10,7 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showCreateWallet, setShowCreateWallet] = useState(false);
   const [showRestoreWallet, setShowRestoreWallet] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
   const [mnemonic, setMnemonic] = useState("");
   const [address, setAddress] = useState("");
   const [password, setPassword] = useState("");
@@ -30,12 +31,11 @@ function App() {
     setWalletExists(exists);
   }, []);
 
-  // ✅ ENCRYPT data before saving
+  // ✅ ENCRYPT / DECRYPT
   const encryptData = (data: string, password: string): string => {
     return CryptoJS.AES.encrypt(data, password).toString();
   };
 
-  // ✅ DECRYPT data after loading
   const decryptData = (encryptedData: string, password: string): string => {
     try {
       const bytes = CryptoJS.AES.decrypt(encryptedData, password);
@@ -45,12 +45,13 @@ function App() {
     }
   };
 
-  // ✅ Login
+  // ✅ LOGIN (Password only - daily use)
   const handleLogin = () => {
     const savedPassword = localStorage.getItem("wallet_password");
     if (loginPassword === savedPassword) {
       setIsLoggedIn(true);
       setLoginError("");
+      setShowLogin(false);
       const encryptedAddress = localStorage.getItem("wallet_address") || "";
       const decryptedAddress = decryptData(encryptedAddress, loginPassword);
       setAddress(decryptedAddress);
@@ -59,7 +60,7 @@ function App() {
     }
   };
 
-  // ✅ Create New Wallet (SECURE)
+  // ✅ CREATE NEW WALLET
   const handleCreateWallet = async () => {
     if (password.length < 8) {
       alert("Password must be at least 8 characters");
@@ -81,22 +82,21 @@ function App() {
       const realAddress = "bitcoincash:q" + addressHash;
       setAddress(realAddress);
       
-      // ✅ ENCRYPT before storing
       const encryptedMnemonic = encryptData(newMnemonic, password);
       const encryptedAddress = encryptData(realAddress, password);
       const encryptedSeed = encryptData(seedHex, password);
+      const encryptedPassphrase = passphrase ? encryptData(passphrase, password) : "";
       
       localStorage.setItem("wallet_mnemonic", encryptedMnemonic);
       localStorage.setItem("wallet_address", encryptedAddress);
       localStorage.setItem("wallet_seed", encryptedSeed);
       localStorage.setItem("wallet_password", password);
+      localStorage.setItem("wallet_passphrase", encryptedPassphrase);
       localStorage.setItem("wallet_exists", "true");
       
       setWalletExists(true);
-      setShowSeed(true); // ✅ SHOW SEED PHRASE
+      setShowSeed(true);
       setShowCreateWallet(false);
-      setLoginPassword(password);
-      // DO NOT log in yet - user needs to see seed first
     } catch (error) {
       alert("Error creating wallet: " + error);
     } finally {
@@ -104,7 +104,7 @@ function App() {
     }
   };
 
-  // ✅ Restore Wallet (SECURE)
+  // ✅ RESTORE WALLET (24-word seed + 25th word + new password)
   const handleRestoreWallet = async () => {
     if (!restoreMnemonic.trim()) {
       setRestoreError("❌ Please enter your 24-word seed phrase");
@@ -130,20 +130,26 @@ function App() {
 
     setIsLoading(true);
     try {
+      // Combine seed + passphrase for restoration
+      const fullMnemonic = restorePassphrase 
+        ? restoreMnemonic.trim() + " " + restorePassphrase.trim()
+        : restoreMnemonic.trim();
+      
       const seed = await bip39.mnemonicToSeed(restoreMnemonic.trim());
       const seedHex = seed.toString('hex');
       const addressHash = seedHex.substring(0, 40);
       const realAddress = "bitcoincash:q" + addressHash;
       
-      // ✅ ENCRYPT before storing
       const encryptedMnemonic = encryptData(restoreMnemonic.trim(), restorePassword);
       const encryptedAddress = encryptData(realAddress, restorePassword);
       const encryptedSeed = encryptData(seedHex, restorePassword);
+      const encryptedPassphrase = restorePassphrase ? encryptData(restorePassphrase, restorePassword) : "";
       
       localStorage.setItem("wallet_mnemonic", encryptedMnemonic);
       localStorage.setItem("wallet_address", encryptedAddress);
       localStorage.setItem("wallet_seed", encryptedSeed);
       localStorage.setItem("wallet_password", restorePassword);
+      localStorage.setItem("wallet_passphrase", encryptedPassphrase);
       localStorage.setItem("wallet_exists", "true");
       
       setWalletExists(true);
@@ -160,12 +166,13 @@ function App() {
     }
   };
 
-  // ✅ Logout - CLEAR MEMORY
+  // ✅ LOGOUT
   const handleLogout = () => {
     localStorage.clear();
     setIsLoggedIn(false);
     setShowCreateWallet(false);
     setShowRestoreWallet(false);
+    setShowLogin(false);
     setWalletExists(false);
     setLoginPassword("");
     setPassword("");
@@ -178,7 +185,7 @@ function App() {
     window.location.reload();
   };
 
-  // ✅ SEED DISPLAY SCREEN (Shows after creation)
+  // ✅ SEED DISPLAY SCREEN
   if (showSeed && mnemonic) {
     return (
       <div style={styles.container}>
@@ -201,6 +208,7 @@ function App() {
             <button 
               onClick={() => {
                 setShowSeed(false);
+                setLoginPassword(password);
                 setIsLoggedIn(true);
               }} 
               style={styles.button}
@@ -213,7 +221,7 @@ function App() {
     );
   }
 
-  // ✅ HOME SCREEN
+  // ✅ HOME SCREEN (Logged In)
   if (isLoggedIn) {
     const walletAddress = address || localStorage.getItem("wallet_address") || "";
     return (
@@ -242,6 +250,37 @@ function App() {
     );
   }
 
+  // ✅ LOGIN SCREEN (Password only)
+  if (showLogin) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.gradient}>
+          <div style={styles.content}>
+            <button style={styles.backButton} onClick={() => setShowLogin(false)}>← Back</button>
+            <img src={`${process.env.PUBLIC_URL}/favicon.png`} alt="Logo" style={styles.logo} />
+            <h1 style={styles.title}>Unlock Wallet</h1>
+            <p style={styles.subtitle}>Enter your password to access your wallet</p>
+
+            <div style={styles.form}>
+              <input
+                type="password"
+                placeholder="Enter your password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                style={styles.input}
+                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+              />
+              <button onClick={handleLogin} style={styles.button}>
+                Unlock Wallet
+              </button>
+              {loginError && <p style={styles.errorText}>{loginError}</p>}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ✅ RESTORE WALLET SCREEN
   if (showRestoreWallet) {
     return (
@@ -251,7 +290,7 @@ function App() {
             <button style={styles.backButton} onClick={() => setShowRestoreWallet(false)}>← Back</button>
             <img src={`${process.env.PUBLIC_URL}/favicon.png`} alt="Logo" style={styles.logo} />
             <h1 style={styles.title}>Restore Wallet</h1>
-            <p style={styles.subtitle}>Enter your 24-word seed phrase</p>
+            <p style={styles.subtitle}>Use your 24-word seed to recover your wallet</p>
 
             <div style={styles.form}>
               <textarea
@@ -282,6 +321,7 @@ function App() {
               >
                 {isLoading ? "Restoring..." : "Restore Wallet"}
               </button>
+              {restoreError && <p style={styles.errorText}>{restoreError}</p>}
             </div>
           </div>
         </div>
@@ -336,7 +376,7 @@ function App() {
     );
   }
 
-  // ✅ WELCOME SCREEN
+  // ✅ WELCOME SCREEN - 3 BUTTONS
   return (
     <div style={styles.container}>
       <div style={styles.gradient}>
@@ -349,30 +389,21 @@ function App() {
           {restoreError && <p style={styles.errorText}>{restoreError}</p>}
 
           <div style={styles.buttonGroup}>
+            {/* Button 1: Login */}
             {walletExists && (
-              <div style={styles.form}>
-                <p style={styles.loginLabel}>Enter your password to unlock</p>
-                <input
-                  type="password"
-                  placeholder="Enter your password"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  style={styles.input}
-                  onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-                />
-                <button onClick={handleLogin} style={styles.button}>
-                  Unlock Wallet
-                </button>
-                <p style={styles.divider}>────────── OR ──────────</p>
-              </div>
+              <button onClick={() => setShowLogin(true)} style={styles.button}>
+                🔐 Login (Password Only)
+              </button>
             )}
 
-            <button onClick={() => setShowCreateWallet(true)} style={styles.button}>
+            {/* Button 2: Create New Wallet */}
+            <button onClick={() => setShowCreateWallet(true)} style={walletExists ? styles.secondaryButton : styles.button}>
               ➕ Create New Wallet
             </button>
 
+            {/* Button 3: Restore Wallet (Forgot password or new device) */}
             <button onClick={() => setShowRestoreWallet(true)} style={styles.secondaryButton}>
-              🔄 Restore Existing Wallet (24-Word Seed)
+              🔄 Restore Wallet (24-Word Seed + 25th Word)
             </button>
           </div>
         </div>
